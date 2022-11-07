@@ -8,6 +8,7 @@ from sklearn.compose import make_column_transformer
 from sklearn.model_selection import train_test_split
 from sklearn.linear_model import LinearRegression
 from sklearn import metrics
+from sklearn.preprocessing import StandardScaler
 
 #MIRAR PREECONDICIONES QUE FALTAN ALGUNAS PERO NO ESTOY SEGURO
 """
@@ -44,13 +45,11 @@ Total de partidos empatados: {(dataSet["Goles Local"] == dataSet["Goles Visita"]
 
 #Separa las variables independientes
 def independentVar():
-    x1 = df.iloc[:,0:2].values
-    x2 = df.iloc[:,4:].values
-    return np.concatenate((x1,x2), axis=1)
+    return newDF.iloc[:,0:4].values
 
 #Separa las variables dependientes
 def dependentVar():
-    return df.iloc[:,2:4].values
+    return newDF.iloc[:,-1].values
 
 #Utilizamos LabelEnconder para convertir los datos categoricos a numericos
 def transform(dataSet):
@@ -68,6 +67,28 @@ df = pd.read_csv('results.csv', low_memory=False)
 
 #Valida que no haya espacios vacios y si hay los completa con el valor de la fila anterior
 df = isNull(df)
+
+df_local = df[df['Seleccion Local'].isin(['Argentina'])]
+df_visita = df[df['Seleccion Visitante'].isin(['Argentina'])]
+
+#Creo un nuevo dataframe para aislar al rival de la argentina
+newDF = pd.DataFrame()
+
+#Concateno el rival cuando jugamos de visitante y al rival cuando jugamos de local
+newDF['Rival'] = pd.concat([df_local['Seleccion Visitante'], df_visita['Seleccion Local']])
+#Agrego la columna de si fue en cancha neutral o no
+newDF['Neutral'] = pd.concat([df_local['Neutral'], df_visita['Neutral']])
+
+newDF['Goles a Favor'] = pd.concat([df_local['Goles Local'], df_visita['Goles Visita']])
+newDF['Goles en Contra'] = pd.concat([df_local['Goles Visita'], df_visita['Goles Local']])
+newDF['Resultado'] = np.where(newDF['Goles a Favor'] > newDF['Goles en Contra'], "GANO", np.where(newDF['Goles a Favor'] < newDF['Goles en Contra'], "PERDIO", "EMPATO"))
+
+ganador = {'PERDIO':0, 'EMPATO':1, 'GANO':2}
+newDF['Resultado'] = newDF['Resultado'].map(ganador)
+
+#Ordeno el dataFrame por index
+newDF = newDF.sort_index()
+print(newDF)
 
 #Impresión de las primeras 5 filas del dataSet con sus respectivas columnas
 #print(df.head())
@@ -100,14 +121,18 @@ Luego de analizar los datos y distinguir las variables vamos a limpiar el dataSe
 #Detalles estadísticos del conjunto de datos:
 #print(statistics(df))
 
+
+
 #Limpiamos las columnas que no tienen peso en la prediccion
-df.drop(["Fecha"], axis = 1, inplace = True)
-df.drop(["Ciudad"], axis = 1, inplace = True)
-df.drop(["Pais"], axis = 1, inplace = True)
+#df.drop(["Fecha"], axis = 1, inplace = True)
+#df.drop(["Ciudad"], axis = 1, inplace = True)
+#df.drop(["Pais"], axis = 1, inplace = True)
+#df.drop(["Torneo"], axis = 1, inplace = True)
 
 #Separamos las variables independientes por un lado y las dependientes por otro
 x = independentVar()
 y = dependentVar()
+
 
 """
 Hagamos una limpieza!
@@ -118,8 +143,10 @@ Una vez separadas las variables dependientes de las independientes necesitamos s
 #Pasamos todos los datos categoricos a numericos
 transform(x)
 
-print(x)
-    
+
+#Utilizamos OneHotEncoder para codificar características categóricas como una matriz y make_column_transformer permite aplicar transformaciones de datos de forma selectiva a diferentes columnas del conjunto de datos. Es decir que calcula y sobreescribe.
+
+
 #onehotencoder = make_column_transformer((OneHotEncoder(), [0]), remainder = "passthrough")
 #x = onehotencoder.fit_transform(x)
 
@@ -135,17 +162,51 @@ Para lograr esta fase del proyecto es necesario dividir los datos en 4 partes:
 """
 
 #Dividimos el dataSet en bloques, que usaremos para entrenamiento y validacion
-x_train, x_test, y_train, y_test = train_test_split(x, y, test_size=0.2, random_state=0)
+x_train, x_test, y_train, y_test = train_test_split(x, y, test_size=0.2, random_state=0, stratify=y)
+
+
+
+
+
+
+#sc_X = StandardScaler()
+#x_train = sc_X.fit_transform(x_train)
+#x_test = sc_X.transform(x_test)
 
 
 regressor = LinearRegression() 
 regressor.fit(x_train, y_train) 
-y_pred = regressor.predict(x_test)
+#PREGUNTAR SI ESTA BIEN REDONDEAR LA PREDICCION Y CAMBIARLA
+y_pred = np.round(regressor.predict(x_test))
+y_pred = y_pred.astype(int)
+i = 0
+for y in y_pred:
+    if(y > 2):
+        y_pred[int(i)] = 2
+    if(y < 0):
+        y_pred[int(i)] = 0
+    i += 1
 
-df_aux = pd.DataFrame({'Actual': y_test.flatten(), 'Predicted': y_pred.flatten()})
+ 
+df_aux = pd.DataFrame({'Actual': y_test.flatten(), 'Predicción': y_pred.flatten()})
+print(df_aux.head(25))
 
-df1 = df_aux.head(50)
-df1.plot(kind='bar',figsize=(10,8))
+
+df_aux.head(30).plot(kind='bar',figsize=(10,8))
 plt.grid(which='major', linestyle='-', linewidth='0.5', color='darkgreen')
 plt.grid(which='minor', linestyle=':', linewidth='0.5', color='black')
 plt.show()
+
+#plt.scatter(y_pred, y_train, color = "#FF6347")
+#plt.plot(y_pred, regressor.predict(x_train), color = "#20B2AA")
+#plt.title("Reales vs Predicciones (Conjunto de Entrenamiento)")
+#plt.xlabel("Reales")
+#plt.ylabel("preddiciones")
+#plt.show()
+
+#plt.scatter(x_test, y_test, color = "#FF6347")
+#plt.plot(x_train, regressor.predict(x_train), color = "#20B2AA")
+#plt.title("Sueldo vs Años de Experiencia (Conjunto de Testing)")
+#plt.xlabel("Años de Experiencia")
+#plt.ylabel("Sueldo")
+#plt.show()
