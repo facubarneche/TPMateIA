@@ -10,12 +10,15 @@ from sklearn.linear_model import LinearRegression
 from sklearn import metrics
 from sklearn.preprocessing import StandardScaler
 
-#MIRAR PREECONDICIONES QUE FALTAN ALGUNAS PERO NO ESTOY SEGURO
 """
-REGRESION .............
-Hoy, sabado 5 de noviembre de 2022, estamos a nada mas y nada menos que a 15 dias para el comienzo de la copa del mundo en Qatar. En consecuencia al peso de este maravilloso evento, se pensó sobre la posibilidad de hacer predicciones de los partidos del mundial.
+Nombre y Apellido: Facundo Hernán Barneche
+DataSet: Resultados de Selecciones de futbol
+Fecha de Entrega: 11/11/2022
 
-Se cuenta con un dataSet de mas de 40000 datos, que contiene información sobre partidos entre selecciones de futbol desde 1872 hasta la actualidad. La información incluye la fecha, la selección local y visitante, los goles del local y de la visita, el torneo (amistoso, copa america, copa del mundo, etc), la cuidad y el respectivo pais en donde se disputo el partido, y neutral (un valor booleano por si el partido entre las selecciones es en un pais neutral).
+
+Hoy, sabado 5 de noviembre de 2022, estamos a nada mas y nada menos que a 15 dias para el comienzo de la copa del mundo en Qatar. En consecuencia al peso de este maravilloso evento, se pensó sobre la posibilidad de hacer predicciones de los partidos de la seleccion nacional en el mundial.
+
+Se cuenta con un dataSet de mas de 40000 datos, que contiene información sobre partidos entre selecciones de futbol desde 1872 hasta la actualidad. La información incluye la fecha, la selección local y visitante, los goles del local y de la visita, el torneo (amistoso, copa america, copa del mundo, etc), la cuidad y el respectivo pais en donde se disputo el partido, neutral (un valor booleano por si el partido entre las selecciones es en un pais neutral) y por otro lado se agrego con una formula una columna con el ganador ya que al dataSet original se lo va a utilizar para hacer un proceso de limpieza en donde se va a precisar esa columna y asi crear un dataFrame mas efectivo para la informacion que se desea mostrar.
 
 Vale destacar que los datos fueron obtenidos de https://www.kaggle.com
 """
@@ -31,21 +34,20 @@ def isNull(dataSet):
 #Recibe un dataSet e imprime detalles estadisticos
 def statistics(dataSet):
     return(f'\n\
-Maxima goleada de local: {dataSet["Goles Local"].max()}\n\
-Maxima goleada de visitante:  {dataSet["Goles Visita"].max()}\n\
-Minimo goles de local: {dataSet["Goles Local"].min()}\n\
-Minimo goles de visitante: {dataSet["Goles Visita"].min()}\n\
-Promedio goles de local: {dataSet["Goles Local"].mean()}\n\
-Promedio goles de visitante: {dataSet["Goles Visita"].mean()}\n\
-Total de goles de local {dataSet["Goles Local"].sum()}\n\
-Total de goles de visita {dataSet["Goles Visita"].sum()}\n\
-Total de partidos ganados por locales: {(dataSet["Goles Local"] > dataSet["Goles Visita"]).sum()}\n\
-Total de partidos ganados por visitantes: {(dataSet["Goles Local"] < dataSet["Goles Visita"]).sum()}\n\
-Total de partidos empatados: {(dataSet["Goles Local"] == dataSet["Goles Visita"]).sum()}\n')
+Maxima goleada a favor: {dataSet["Goles a Favor"].max()}\n\
+Maxima goleada en contra:  {dataSet["Goles en Contra"].max()}\n\
+Promedio goles a favor: {dataSet["Goles a Favor"].mean()}\n\
+Promedio goles en contra: {dataSet["Goles en Contra"].mean()}\n\
+Total de goles a favor {dataSet["Goles a Favor"].sum()}\n\
+Total de goles en contra {dataSet["Goles en Contra"].sum()}\n\
+Total de partidos ganados: {(dataSet["Resultado"] == 2).sum()}\n\
+Total de partidos perdido: {(dataSet["Resultado"] == 0).sum()}\n\
+Total de partidos empatados: {(dataSet["Resultado"] == 1).sum()}\n\\n')
 
 #Separa las variables independientes
 def independentVar():
-    return newDF.iloc[:,0:4].values
+    print(newDF)
+    return newDF.iloc[:,0:7].values
 
 #Separa las variables dependientes
 def dependentVar():
@@ -57,7 +59,6 @@ def transform(dataSet):
     
     for i in range(dataSet.shape[1]):    
         dataSet[:,i] = labelencoder_x.fit_transform(dataSet[:,i])
-
 #########################################################################################
 ################################       PROGRAMA       ###################################
 #########################################################################################
@@ -68,17 +69,21 @@ df = pd.read_csv('results.csv', low_memory=False)
 #Valida que no haya espacios vacios y si hay los completa con el valor de la fila anterior
 df = isNull(df)
 
+df['Condicion'] = np.where(df['Seleccion Visitante'] == 'Argentina', "Visitante", "Local")
 df_local = df[df['Seleccion Local'].isin(['Argentina'])]
 df_visita = df[df['Seleccion Visitante'].isin(['Argentina'])]
 
 #Creo un nuevo dataframe para aislar al rival de la argentina
 newDF = pd.DataFrame()
 
+newDF['Fecha'] = pd.concat([df_local['Fecha'], df_visita['Fecha']])
+newDF['Torneo'] = pd.concat([df_local['Torneo'], df_visita['Torneo']])
+
 #Concateno el rival cuando jugamos de visitante y al rival cuando jugamos de local
 newDF['Rival'] = pd.concat([df_local['Seleccion Visitante'], df_visita['Seleccion Local']])
 #Agrego la columna de si fue en cancha neutral o no
 newDF['Neutral'] = pd.concat([df_local['Neutral'], df_visita['Neutral']])
-
+newDF['Condicion'] = pd.concat([df_local['Condicion'], df_visita['Condicion']])
 newDF['Goles a Favor'] = pd.concat([df_local['Goles Local'], df_visita['Goles Visita']])
 newDF['Goles en Contra'] = pd.concat([df_local['Goles Visita'], df_visita['Goles Local']])
 newDF['Resultado'] = np.where(newDF['Goles a Favor'] > newDF['Goles en Contra'], "GANO", np.where(newDF['Goles a Favor'] < newDF['Goles en Contra'], "PERDIO", "EMPATO"))
@@ -88,7 +93,42 @@ newDF['Resultado'] = newDF['Resultado'].map(ganador)
 
 #Ordeno el dataFrame por index
 newDF = newDF.sort_index()
-print(newDF)
+
+
+
+newDF.groupby('Condicion')['Resultado'].mean().plot(kind='barh', figsize=(10,8), color='skyblue', label='Promedios por condicion')
+
+plt.xlabel('Resultado', weight='bold')
+plt.ylabel('Condicion')
+plt.title('Promedios Argentina Local/Visitante', weight='bold', size=10)
+plt.legend(title='Derrota = 0, Empate = 1, Victoria = 2')
+plt.plot(data=None)
+
+
+prom_gaf = pd.Series(newDF.groupby('Condicion')['Goles a Favor'].mean())
+prom_gec = pd.Series(newDF.groupby('Condicion')['Goles en Contra'].mean())
+
+#Obtenemos la posicion de cada etiqueta en el eje de X
+cond = ['Local', 'Visitante']
+x = np.arange(len(cond))
+fig, ax = plt.subplots()
+width=0.25
+
+#Generamos las barras para el conjunto de promedios de goles a favor
+ax.bar(x - width/2, prom_gaf, width, label='Promedio de goles a favor',color='yellow')
+
+#Generamos las barras para el conjunto de promedios de goles en contra
+ax.bar(x + width/2, prom_gec, width, label='Promedio de goles en contra',color='lightgreen')
+
+#Agregamos las etiquetas de identificación de valores en el gráfico
+ax.set_ylabel('Goles')
+ax.set_title('Relación Promedio de goles de Local y Visitante')
+ax.set_xticks(x)
+ax.set_xticklabels(cond)
+
+#Agregamos legen() para mostrar con colores a que pertenece cada valor.
+ax.legend()
+fig.tight_layout()
 
 #Impresión de las primeras 5 filas del dataSet con sus respectivas columnas
 #print(df.head())
@@ -118,8 +158,13 @@ Por otro lado, las columnas goles local y goles visitas son las 2 variables depe
 Luego de analizar los datos y distinguir las variables vamos a limpiar el dataSet de informacion sin relevancia para los fines de esta prediccion como por ejemplo la fecha, la ciudad y el pais ya que con saber si es local suponemos que se jugó en su pais o viceverza a menos que neutral este en true (cancha neutral)
 """
 
+
+
+
+
 #Detalles estadísticos del conjunto de datos:
-#print(statistics(df))
+print(statistics(newDF))
+
 
 
 
@@ -146,7 +191,7 @@ transform(x)
 
 #Utilizamos OneHotEncoder para codificar características categóricas como una matriz y make_column_transformer permite aplicar transformaciones de datos de forma selectiva a diferentes columnas del conjunto de datos. Es decir que calcula y sobreescribe.
 
-
+#CONSULTAR, ME PARECE MAS APROPIEDADO DEJARLE EL PESO A LAS FECHAS 
 #onehotencoder = make_column_transformer((OneHotEncoder(), [0]), remainder = "passthrough")
 #x = onehotencoder.fit_transform(x)
 
@@ -177,17 +222,21 @@ x_train, x_test, y_train, y_test = train_test_split(x, y, test_size=0.2, random_
 regressor = LinearRegression() 
 regressor.fit(x_train, y_train) 
 #PREGUNTAR SI ESTA BIEN REDONDEAR LA PREDICCION Y CAMBIARLA
-y_pred = np.round(regressor.predict(x_test))
-y_pred = y_pred.astype(int)
-i = 0
-for y in y_pred:
-    if(y > 2):
-        y_pred[int(i)] = 2
-    if(y < 0):
-        y_pred[int(i)] = 0
-    i += 1
+y_pred = regressor.predict(x_test)
+#y_pred = np.round(regressor.predict(x_test))
+#y_pred = y_pred.astype(int)
+#i = 0
+#for y in y_pred:
+#    if(y > 2):
+#        y_pred[int(i)] = 2
+#    if(y < 0):
+#        y_pred[int(i)] = 0
+#    i += 1
 
  
+
+
+
 df_aux = pd.DataFrame({'Actual': y_test.flatten(), 'Predicción': y_pred.flatten()})
 print(df_aux.head(25))
 
@@ -197,16 +246,6 @@ plt.grid(which='major', linestyle='-', linewidth='0.5', color='darkgreen')
 plt.grid(which='minor', linestyle=':', linewidth='0.5', color='black')
 plt.show()
 
-#plt.scatter(y_pred, y_train, color = "#FF6347")
-#plt.plot(y_pred, regressor.predict(x_train), color = "#20B2AA")
-#plt.title("Reales vs Predicciones (Conjunto de Entrenamiento)")
-#plt.xlabel("Reales")
-#plt.ylabel("preddiciones")
-#plt.show()
-
-#plt.scatter(x_test, y_test, color = "#FF6347")
-#plt.plot(x_train, regressor.predict(x_train), color = "#20B2AA")
-#plt.title("Sueldo vs Años de Experiencia (Conjunto de Testing)")
-#plt.xlabel("Años de Experiencia")
-#plt.ylabel("Sueldo")
-#plt.show()
+print('Error Absoluto Medio:',metrics.mean_absolute_error(y_test, y_pred)) 
+print('Error Cuadratico Medio:', metrics.mean_squared_error(y_test, y_pred)) 
+print('Raíz del error cuadrático medio:', np.sqrt(metrics.mean_squared_error(y_test, y_pred)))
