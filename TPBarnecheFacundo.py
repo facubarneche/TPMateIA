@@ -59,6 +59,7 @@ def transform(dataSet):
     
     for i in range(dataSet.shape[1]):    
         dataSet[:,i] = labelencoder_x.fit_transform(dataSet[:,i])
+        
 #########################################################################################
 ################################       PROGRAMA       ###################################
 #########################################################################################
@@ -128,7 +129,7 @@ ax.set_xticklabels(cond)
 
 #Agregamos legen() para mostrar con colores a que pertenece cada valor.
 ax.legend()
-fig.tight_layout()
+#fig.tight_layout()
 
 #Impresión de las primeras 5 filas del dataSet con sus respectivas columnas
 #print(df.head())
@@ -164,7 +165,7 @@ Luego de analizar los datos y distinguir las variables vamos a limpiar el dataSe
 
 #Detalles estadísticos del conjunto de datos:
 print(statistics(newDF))
-
+print(df)
 
 
 
@@ -192,8 +193,8 @@ transform(x)
 #Utilizamos OneHotEncoder para codificar características categóricas como una matriz y make_column_transformer permite aplicar transformaciones de datos de forma selectiva a diferentes columnas del conjunto de datos. Es decir que calcula y sobreescribe.
 
 #CONSULTAR, ME PARECE MAS APROPIEDADO DEJARLE EL PESO A LAS FECHAS 
-#onehotencoder = make_column_transformer((OneHotEncoder(), [0]), remainder = "passthrough")
-#x = onehotencoder.fit_transform(x)
+onehotencoder = make_column_transformer((OneHotEncoder(), [5,6]), remainder = "passthrough")
+x = onehotencoder.fit_transform(x)
 
 """
 A entrenar se ha dicho!
@@ -244,7 +245,7 @@ print(df_aux.head(25))
 df_aux.head(30).plot(kind='bar',figsize=(10,8))
 plt.grid(which='major', linestyle='-', linewidth='0.5', color='darkgreen')
 plt.grid(which='minor', linestyle=':', linewidth='0.5', color='black')
-plt.show()
+#plt.show()
 
 print('Error Absoluto Medio:',metrics.mean_absolute_error(y_test, y_pred)) 
 print('Error Cuadratico Medio:', metrics.mean_squared_error(y_test, y_pred)) 
