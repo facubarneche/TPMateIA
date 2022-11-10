@@ -81,61 +81,34 @@ def transform(dataSet):
 #########################################################################################
 
 #Importacion de datos
-df = pd.read_csv('results.csv', low_memory=False)
+df = pd.read_csv('runners.csv', low_memory=False)
 
 #Valida que no haya espacios vacios y si hay los completa con el valor de la fila anterior
 df = isNull(df)
 
-#Le creo una columna al df inicial para luego pasarlo al nuevo df
-df['Condicion'] = np.where(df['Seleccion Visitante'] == 'Argentina', "Visitante", "Local")
-
-#Filtra los partidos como local y como visitante (si existe argentina)
-df_local = df[df['Seleccion Local'].isin(['Argentina'])]
-df_visita = df[df['Seleccion Visitante'].isin(['Argentina'])]
-
-#Creo un nuevo dataframe para aislar al rival de la argentina
-newDF = pd.DataFrame()
-
-#Concateno las los datos de df_local y df_visita
-newDF['Fecha'] = pd.concat([df_local['Fecha'], df_visita['Fecha']])
-newDF['Torneo'] = pd.concat([df_local['Torneo'], df_visita['Torneo']])
-
-#Concateno el rival cuando jugamos de visitante y al rival cuando jugamos de local
-newDF['Rival'] = pd.concat([df_local['Seleccion Visitante'], df_visita['Seleccion Local']])
-#Agrego la columna de si fue en cancha neutral o no, la condicion, los goles y el resultado
-newDF['Neutral'] = pd.concat([df_local['Neutral'], df_visita['Neutral']])
-newDF['Condicion'] = pd.concat([df_local['Condicion'], df_visita['Condicion']])
-newDF['Goles a Favor'] = pd.concat([df_local['Goles Local'], df_visita['Goles Visita']])
-newDF['Goles en Contra'] = pd.concat([df_local['Goles Visita'], df_visita['Goles Local']])
-newDF['Resultado'] = np.where(newDF['Goles a Favor'] > newDF['Goles en Contra'], "GANO", np.where(newDF['Goles a Favor'] < newDF['Goles en Contra'], "PERDIO", "EMPATO"))
-
-#Creo un diccionario para luego mapearle las variables numericas que yo quiero
-ganador = {'PERDIO':-1, 'EMPATO':0, 'GANO':1}
-newDF['Resultado'] = newDF['Resultado'].map(ganador)
-
-#Ordeno el dataFrame por index
-newDF = newDF.sort_index()
-
+#Borro la fila de id 
+df.drop(['id'], axis=1 , inplace=True)
+print(df)
 """
 Este grafico muestra el promedio de los resultados de los partidos jugados de Argentina, en donde la derrota es -1, el empate 0 y la victoria 1.
 Se puede ver que de visitante tiene un promedio de 0.08 aproximadamente lo que da a entender que lo que mas predomina en los partidos de la seleccion como visitante es el empate, por otro lado la cara de la seleccion como local, aproximadamente 0.57, un promedio muy cerca del 1 que seria el 100% de victorias como visitante, algo casi imposible.
 """
 
-#Agrupo la columna condicion para relacionarlo con los resultados en un grafico de barra
+""" #Agrupo la columna condicion para relacionarlo con los resultados en un grafico de barra
 newDF.groupby('Condicion')['Resultado'].mean().plot(kind='barh', figsize=(10,8), color='skyblue', label='Promedios por condicion')
 plt.xlabel('Resultado', weight='bold')
 plt.ylabel('Condicion')
 plt.title('Promedios Argentina Local/Visitante', weight='bold', size=10)
 plt.legend(title='Derrota = -1, Empate = 0, Victoria = 1')
 plt.plot(data=None)
-plt.show()
+plt.show() """
 
 """
 Este grafico muestra el promedio de goles a favor y en contra de argentina como local y visitante, se aprecia como argentina de local tiene un promedio realmente bueno con mas de 2 goles por partido (sinceramente no me lo imaginaba y veo casi todos los partidos de Argentina) y menos de 1 gol por partido en contra (personalmente un promedio aceptable).
 Como visitante claramente el juego de la seleccion esta mas opacado que el de local, con casi 1 gol y medio por partido a favor y 1 gol y cuarto aproximadamente de goles en contra por partido, sigue siendo excelente ya que de visitante es normal bajar la efectividad del juego.
 """
 
-#Agrupamos en 2 series distintas la columna condicion para relacionarlo con goles a favor y en contra
+""" #Agrupamos en 2 series distintas la columna condicion para relacionarlo con goles a favor y en contra
 prom_gaf = pd.Series(newDF.groupby('Condicion')['Goles a Favor'].mean())
 prom_gec = pd.Series(newDF.groupby('Condicion')['Goles en Contra'].mean())
 
@@ -161,7 +134,7 @@ ax.set_xticklabels(cond)
 ax.legend()
 fig.tight_layout()
 plt.show()
-
+ """
 
 """
 Analicemos los datos!
@@ -187,14 +160,14 @@ Una vez separadas las variables dependientes de las independientes necesitamos s
 """
 
 #Detalles estadísticos del conjunto de datos:
-statistics(newDF)
+#statistics(newDF)
 
 #Separamos las variables independientes por un lado y las dependientes por otro
-x = independentVar(newDF)
-y = dependentVar(newDF)
+#x = independentVar(newDF)
+#y = dependentVar(newDF)
 
 #Pasamos todos los datos categoricos a numericos (la variable independiente no tiene datos categoricos)
-transform(x)
+#transform(x)
 
 #Utilizamos OneHotEncoder para codificar características categóricas como una matriz y make_column_transformer permite aplicar transformaciones de datos de forma selectiva a diferentes columnas del conjunto de datos. Es decir que calcula y sobreescribe.
 
@@ -214,21 +187,21 @@ Para lograr esta fase del proyecto es necesario dividir los datos en 4 partes:
 """
 
 #Dividimos el dataSet en bloques, que usaremos para entrenamiento y validacion
-x_train, x_test, y_train, y_test = train_test_split(x, y, test_size=0.2, random_state=0, stratify=y)
+#x_train, x_test, y_train, y_test = train_test_split(x, y, test_size=0.2, random_state=0, stratify=y)
 
-sc_X = StandardScaler()
-x_train = sc_X.fit_transform(x_train)
-x_test = sc_X.transform(x_test)
+#sc_X = StandardScaler()
+#x_train = sc_X.fit_transform(x_train)
+#x_test = sc_X.transform(x_test)
 
 #Utilizamos la tecnica de los cuadrados minimos, basado en la experiencia de aprendizaje
-regressor = LinearRegression() 
-regressor.fit(x_train, y_train) 
+#regressor = LinearRegression() 
+#regressor.fit(x_train, y_train) 
 
 
 #PREGUNTAR SI ESTA BIEN REDONDEAR LA PREDICCION Y CAMBIARLA 
 #Con los datos de test se predice el resultado
-y_pred = regressor.predict(x_test)
-y_pred = np.round(regressor.predict(x_test))
+#y_pred = regressor.predict(x_test)
+#y_pred = np.round(regressor.predict(x_test))
 #y_pred = y_pred.astype(int)
 #i = 0
 #for y in y_pred:
@@ -239,24 +212,24 @@ y_pred = np.round(regressor.predict(x_test))
 #    i += 1
 
 #Con un dataFrame auxiliar se compara los valores actuales contra las predicciones
-df_aux = pd.DataFrame({'Actual': y_test.flatten(), 'Predicción': y_pred.flatten()})
+#df_aux = pd.DataFrame({'Actual': y_test.flatten(), 'Predicción': y_pred.flatten()})
 #print(df_aux.head(25))
 
 """
 En este grafico se puede ver los valores actuales (reales) contra las predicciones, se aprecia que si bien la gran mayoria se acercan al resultado real no son tan precisas respecto a sus decimales. 
 """
 
-df_aux.head(30).plot(kind='bar',figsize=(10,8))
+""" df_aux.head(30).plot(kind='bar',figsize=(10,8))
 plt.grid(which='major', linestyle='-', linewidth='0.5', color='darkgreen')
 plt.grid(which='minor', linestyle=':', linewidth='0.5', color='black')
-plt.show()
+plt.show() """
 
 #Mostramos las metricas
-print('Error Absoluto Medio:',metrics.mean_absolute_error(y_test, y_pred)) 
+""" print('Error Absoluto Medio:',metrics.mean_absolute_error(y_test, y_pred)) 
 print('Error Cuadratico Medio:', metrics.mean_squared_error(y_test, y_pred)) 
 print('Raíz del error cuadrático medio:', np.sqrt(metrics.mean_squared_error(y_test, y_pred)))
 print('mean absolute percentage error:',metrics.mean_absolute_percentage_error(y_test, y_pred))
-
+ """
 """
 Para concluir se apreciar como el valor "Raiz del error cuadratico medio" es de 0.5358 lo cual es una pesima prediccion, aunque no fue muy preciso el algoritmo las predicciones son bastante acertadas ya que no es un factor importante el decimal ya que la idea principal era que el valor se acerque al 1 si gana, 0 si empata y -1 si pierde.
 
