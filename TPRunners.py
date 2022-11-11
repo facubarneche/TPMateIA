@@ -2,6 +2,7 @@ import pandas as pd
 import numpy as np 
 import matplotlib.pyplot as plt 
 import seaborn as sns
+import seaborn as seabornInstance 
 from sklearn.preprocessing import LabelEncoder
 from sklearn.preprocessing import OneHotEncoder
 from sklearn.compose import make_column_transformer
@@ -20,19 +21,12 @@ DataSet: Resultados de Selecciones de futbol
 Fecha de Entrega: 11/11/2022
 
 
-Hoy, sabado 5 de noviembre de 2022, estamos a nada mas y nada menos que a 15 dias para el comienzo de la copa del mundo en Qatar. En consecuencia al peso de este maravilloso evento, se pensó sobre la posibilidad de hacer predicciones de los partidos de la seleccion nacional en el mundial.
+Se cuenta con un dataSet de menos de 100 registros, que contiene información sobre corredores.
+Se hizo un proceso de limpieza en donde se desecha la primera columna del cvs de los ids que no tenia importancia alguna. 
+La información incluye el pulso antes y despues de correr, si la persona hace deporte frecuentemente, si fuma, el genero, la altura y que la intensidad de la actividad.
 
-Se cuenta con un dataSet de mas de 40000 datos, que contiene información sobre partidos entre selecciones de futbol desde 1872 hasta la actualidad. Se hizó un proceso de seleccion y limpieza para dejar un dataFrame unicamente de la seleccion Argentina y se le agrego posibles partidos de la seleccion argentina. La información incluye la fecha, el rival, los goles a favor y en contra, el torneo (amistoso, copa america, copa del mundo, etc), la cuidad y el respectivo pais en donde se disputo el partido, neutral (un valor booleano por si el partido entre las selecciones es en un pais neutral) y por otro lado se agrego con una formula en el csv una columna con el ganador del partido ya que al dataSet original se lo va a utilizar para hacer un proceso de limpieza en donde se va a precisar esa columna y asi crear un dataFrame mas efectivo para la informacion que se desea mostrar.
-
-Para finalizar se podria decir que con ayuda del dataFrame inicial creamos un nuevo dataFrame que contiene la Fecha, Torneo que disputa, el rival, si juega en cancha neutral,la condicion (local o visitante), los goles a Favor, los Goles en Contra, el Ganador  y el Resultado (-1 si pierde, 0 si empata, 1 si gana). De estos datos no se va a desperdiciar ninguna columna ya que ese trabajo de limpieza lo hicimos cuando se creo este nuevo, del dataFrame inicial se desecho la ciudad y pais donde se jugo el partido y todos los partidos de selecciones diferentes a argentina.
-
-En base a lo anteriormente comentado es que se usará la regresion lineal multiple y se esperará que prediga con la mayor precision posible el resultado de la seleccion Argentina.
-
-Vale destacar que los datos fueron obtenidos de https://www.kaggle.com
+En base a lo anteriormente comentado es que se usará la regresion lineal multiple y se esperará que prediga con la mayor precision posible el peso del corredor segun sus atributos.
 """
-
-
-
 
 #########################################################################################
 ################################       FUNCIONES       ##################################
@@ -50,24 +44,17 @@ Impresión de las primeras 5 filas del dataSet con sus respectivas columnas:\n\
 {dataSet.head()}\n\n\
 Impresión de la cantidad de filas y columnas (en ese sentido) del dataSet\n\
 {dataSet.shape}\n\n\
-{dataSet.describe()}\n\n\
-Maxima goleada a favor: {dataSet["Goles a Favor"].max()}\n\
-Maxima goleada en contra:  {dataSet["Goles en Contra"].max()}\n\
-Promedio goles a favor: {dataSet["Goles a Favor"].mean()}\n\
-Promedio goles en contra: {dataSet["Goles en Contra"].mean()}\n\
-Total de goles a favor {dataSet["Goles a Favor"].sum()}\n\
-Total de goles en contra {dataSet["Goles en Contra"].sum()}\n\
-Total de partidos ganados: {(dataSet["Resultado"] == 2).sum()}\n\
-Total de partidos perdido: {(dataSet["Resultado"] == 0).sum()}\n\
-Total de partidos empatados: {(dataSet["Resultado"] == 1).sum()}\n')
+{dataSet.describe()}')
+
 
 #Separa las variables independientes
 def independentVar(dataSet):
+    dataSet = dataSet[['pulso.antes','pulso.despues','hace.deporte','fuma','genero','altura','tipo.actividad','peso']]
     return dataSet.iloc[:,0:7].values
 
 #Separa las variables dependientes
 def dependentVar(dataSet):
-    return dataSet.iloc[:,-1].values
+    return dataSet.iloc[:,6:7].values
 
 #Utilizamos LabelEnconder para convertir los datos categoricos a numericos
 def transform(dataSet):
@@ -86,73 +73,51 @@ df = pd.read_csv('runners.csv', low_memory=False)
 #Valida que no haya espacios vacios y si hay los completa con el valor de la fila anterior
 df = isNull(df)
 
-#Borro la fila de id 
+#Desecha la fila de id 
 df.drop(['id'], axis=1 , inplace=True)
-print(df)
-"""
-Este grafico muestra el promedio de los resultados de los partidos jugados de Argentina, en donde la derrota es -1, el empate 0 y la victoria 1.
-Se puede ver que de visitante tiene un promedio de 0.08 aproximadamente lo que da a entender que lo que mas predomina en los partidos de la seleccion como visitante es el empate, por otro lado la cara de la seleccion como local, aproximadamente 0.57, un promedio muy cerca del 1 que seria el 100% de victorias como visitante, algo casi imposible.
-"""
-
-""" #Agrupo la columna condicion para relacionarlo con los resultados en un grafico de barra
-newDF.groupby('Condicion')['Resultado'].mean().plot(kind='barh', figsize=(10,8), color='skyblue', label='Promedios por condicion')
-plt.xlabel('Resultado', weight='bold')
-plt.ylabel('Condicion')
-plt.title('Promedios Argentina Local/Visitante', weight='bold', size=10)
-plt.legend(title='Derrota = -1, Empate = 0, Victoria = 1')
-plt.plot(data=None)
-plt.show() """
 
 """
-Este grafico muestra el promedio de goles a favor y en contra de argentina como local y visitante, se aprecia como argentina de local tiene un promedio realmente bueno con mas de 2 goles por partido (sinceramente no me lo imaginaba y veo casi todos los partidos de Argentina) y menos de 1 gol por partido en contra (personalmente un promedio aceptable).
-Como visitante claramente el juego de la seleccion esta mas opacado que el de local, con casi 1 gol y medio por partido a favor y 1 gol y cuarto aproximadamente de goles en contra por partido, sigue siendo excelente ya que de visitante es normal bajar la efectividad del juego.
+Matriz de correlación
+
+Muestra el grado de correlaciones, de cada variable en el conjunto de datos, con cada otra variable en el conjunto de datos. Es una representación de todos estos coeficientes de correlación de cada variable individual en los datos con cada otra variable en los datos.
+
+El grado de correlación entre dos variables cualesquiera se representa de dos maneras, el color del cuadro o caja y el número dentro. Cuanto más fuerte sea el color, mayor será la magnitud de la correlación.
+
+Cuanto más cerca esté el número de 1, mayor será la correlación. Si el número es positivo, establece una correlación positiva. Si es negativo establece una correlación negativa. 
+
+1 y -1 establecen correlaciones perfectas entre las variables.
+
+En base a la matriz de correlacion  y el grafico se puede ver que hay una ligera correlatividad entre los pulsos, y una correlatividad ya mas pronunciada respecto a la altura con el peso
+"""
+corr = df.corr()
+plt.subplots(figsize=(10,8))
+sns.heatmap(corr, xticklabels=corr.columns, yticklabels=corr.columns, annot=True, fmt='.0%',
+            cmap=sns.diverging_palette(240, 10, as_cmap=True)) 
+
+"""
+La funcion de este grafico es contar cuantos pesos de cada uno hay, se ve el peso promedio en esta ocasion es de 160. 
 """
 
-""" #Agrupamos en 2 series distintas la columna condicion para relacionarlo con goles a favor y en contra
-prom_gaf = pd.Series(newDF.groupby('Condicion')['Goles a Favor'].mean())
-prom_gec = pd.Series(newDF.groupby('Condicion')['Goles en Contra'].mean())
-
-#Obtenemos la posicion de cada etiqueta en el eje de X
-cond = ['Local', 'Visitante']
-x = np.arange(len(cond))
-fig, ax = plt.subplots()
-width=0.25
-
-#Generamos las barras para el conjunto de promedios de goles a favor
-ax.bar(x - width/2, prom_gaf, width, label='Promedio de goles a favor',color='red')
-
-#Generamos las barras para el conjunto de promedios de goles en contra
-ax.bar(x + width/2, prom_gec, width, label='Promedio de goles en contra',color='pink')
-
-#Agregamos las etiquetas de identificación de valores en el gráfico
-ax.set_ylabel('Goles')
-ax.set_title('Relación Promedio de goles de Local y Visitante')
-ax.set_xticks(x)
-ax.set_xticklabels(cond)
-
-#Agregamos legen() para mostrar con colores a que pertenece cada valor.
-ax.legend()
-fig.tight_layout()
-plt.show()
- """
+plt.tight_layout()
+seabornInstance.displot(df['peso'])
 
 """
 Analicemos los datos!
 
-En consola se puede observar 8 columnas (excluyendo el id de la columna): 
-    * Fecha: Fecha donde el encuentro tuvo lugar
-    * Torneo: Nombre del torneo al que pertenece ese partido
-    * Rival: Nombre del rival de Argentina
-    * Neutral: Valor booleano que indica si el partido se juega en territorio neutral, en esa ocacion la seleccion local y visitante son asignados a esa posicion de forma arbitraria
-    * Condicion: Local o Visitante
-    * Goles a favor: Goles de la seleccion a favor
-    * Goles en contra: Goles de la seleccion en contra
-    * Resultado: Resultado final del partido
-    
+En consola se puede observar 8 columnas: 
+    * Pulso Antes: Pulso antes de correr
+    * Pulso Despues: Pulso despues de correr
+    * Si Hace Deporte: Si es un corredor que hace deporte o no
+    * Si Fuma: Si la persona tiene el habito de fumar
+    * Genero: Genero del corredor
+    * Altura: Altura de la persona
+    * Peso: Peso de la persona
+    * Tipo de Actividad: La intensidad de la actividad
+
 Distingamos las variables...
 
-Las columnas fecha, torneo, rival, neutral, condicion, goles a favor y en contra, tienen informacion propia que son totalmente independientes.
-Por otro lado, la columna resultados es una variable dependiente, la cual vamos a intentar predecir con el algoritmo de machine learning.
+Las columnas de los pulsos, deporte, si fuma, genero, altura, y tipo de actividad, tienen informacion propia que son totalmente independientes.
+Por otro lado, la columna Peso es una variable dependiente, la cual vamos a intentar predecir con el algoritmo de machine learning.
 
 Hagamos una limpieza!
 
@@ -160,14 +125,15 @@ Una vez separadas las variables dependientes de las independientes necesitamos s
 """
 
 #Detalles estadísticos del conjunto de datos:
-#statistics(newDF)
+statistics(df)
 
 #Separamos las variables independientes por un lado y las dependientes por otro
-#x = independentVar(newDF)
-#y = dependentVar(newDF)
+x = independentVar(df)
+y = dependentVar(df)
 
 #Pasamos todos los datos categoricos a numericos (la variable independiente no tiene datos categoricos)
-#transform(x)
+transform(x)
+
 
 #Utilizamos OneHotEncoder para codificar características categóricas como una matriz y make_column_transformer permite aplicar transformaciones de datos de forma selectiva a diferentes columnas del conjunto de datos. Es decir que calcula y sobreescribe.
 
@@ -184,59 +150,56 @@ Para lograr esta fase del proyecto es necesario dividir los datos en 4 partes:
     * Variables independientes para testear (resto)
     * Variables dependientes o llamadas conjunto de prediccion para entrenar (igual a la variable independiente)
     * Variables dependientes o llamadas conjunto de prediccion para testear (igual a la variable independiente)
+
+Luego de hacer la division de las variables para el entrenamiento se escalaron las variables (disminuir las variables a su maxima expresion para que la diferencia de rango entre las variables no afecte a las mismas), y nos dimos cuenta que la mejora que tuvimos fue practicamente nula.
+
+Para terminar usamos la tecnica de los cuadrados minimos para hacer las predicciones
 """
 
 #Dividimos el dataSet en bloques, que usaremos para entrenamiento y validacion
-#x_train, x_test, y_train, y_test = train_test_split(x, y, test_size=0.2, random_state=0, stratify=y)
+x_train, x_test, y_train, y_test = train_test_split(x, y, test_size=0.2, random_state=0)
 
-#sc_X = StandardScaler()
-#x_train = sc_X.fit_transform(x_train)
-#x_test = sc_X.transform(x_test)
+sc_X = StandardScaler()
+x_train = sc_X.fit_transform(x_train)
+x_test = sc_X.transform(x_test)
 
 #Utilizamos la tecnica de los cuadrados minimos, basado en la experiencia de aprendizaje
-#regressor = LinearRegression() 
-#regressor.fit(x_train, y_train) 
+regressor = LinearRegression() 
+regressor.fit(x_train, y_train) 
 
-
-#PREGUNTAR SI ESTA BIEN REDONDEAR LA PREDICCION Y CAMBIARLA 
 #Con los datos de test se predice el resultado
-#y_pred = regressor.predict(x_test)
-#y_pred = np.round(regressor.predict(x_test))
-#y_pred = y_pred.astype(int)
-#i = 0
-#for y in y_pred:
-#    if(y > 2):
-#        y_pred[int(i)] = 2
-#    if(y < 0):
-#        y_pred[int(i)] = 0
-#    i += 1
+y_pred = regressor.predict(x_test)
+
+#PREGUNTAR COEFICIENTES
+#coeff_df = pd.DataFrame(regressor.coef_, df, columns=['Coefficient']) 
+#print(coeff_df)
 
 #Con un dataFrame auxiliar se compara los valores actuales contra las predicciones
-#df_aux = pd.DataFrame({'Actual': y_test.flatten(), 'Predicción': y_pred.flatten()})
-#print(df_aux.head(25))
+df_aux = pd.DataFrame({'Actual': y_test.flatten(), 'Predicción': y_pred.flatten()})
+print(df_aux.head(25))
 
 """
 En este grafico se puede ver los valores actuales (reales) contra las predicciones, se aprecia que si bien la gran mayoria se acercan al resultado real no son tan precisas respecto a sus decimales. 
 """
 
-""" df_aux.head(30).plot(kind='bar',figsize=(10,8))
+df_aux.head(30).plot(kind='bar',figsize=(10,8))
 plt.grid(which='major', linestyle='-', linewidth='0.5', color='darkgreen')
 plt.grid(which='minor', linestyle=':', linewidth='0.5', color='black')
-plt.show() """
+plt.show()
 
 #Mostramos las metricas
-""" print('Error Absoluto Medio:',metrics.mean_absolute_error(y_test, y_pred)) 
+print('Error Absoluto Medio:',metrics.mean_absolute_error(y_test, y_pred)) 
 print('Error Cuadratico Medio:', metrics.mean_squared_error(y_test, y_pred)) 
 print('Raíz del error cuadrático medio:', np.sqrt(metrics.mean_squared_error(y_test, y_pred)))
 print('mean absolute percentage error:',metrics.mean_absolute_percentage_error(y_test, y_pred))
- """
-"""
-Para concluir se apreciar como el valor "Raiz del error cuadratico medio" es de 0.5358 lo cual es una pesima prediccion, aunque no fue muy preciso el algoritmo las predicciones son bastante acertadas ya que no es un factor importante el decimal ya que la idea principal era que el valor se acerque al 1 si gana, 0 si empata y -1 si pierde.
 
-Hay muchos factores que pueden haber contribuido a esta inexactitud, por ejemplo:
+""" 
+Para concluir se apreciar como el valor "Raiz del error cuadratico medio" es de 12.6360 lo cual es una prediccion bastante acertada, ya que es menor al 10% (8,7% aproximadamente) de la media de peso (variable dependiente).
 
-1. Cantidad de datos: La cantidad de registros de la seleccion Argentina no es una gran cantidad de datos para obtener la mejor predicción posible.
-2. Los Atributos: La cantidad de atributos distintos como los paises, fechas, etc puede ser que le jueguen una mala pasada al algoritmo de precision haciendo que este mal interprete los datos.
+Hay factores los cuales pueden influir para que el algoritmo sea aun mas eficiente.
 
-Para finalizar, segun los datos que teniamos en nuestro poder las predicciones que logro hacer el algoritmo me dejaron conformes si bien no se pudo mejorar para que la raiz del error cuadratico medio sea aceptable.
+1. Cantidad de datos: La cantidad de registros del cvs es muy poco para hacer buenas predicciones, eso igualmente es un punto a favor para el algoritmo ya que tiene una efectividad muy buena con muy pocos datos.
+2. Los Atributos: Los atributos son bastante acertados pero no tienen tanta correlacion entre los mismos, personalmente le agregaria atributos como edad, minimo de minutos corridos, maximo de minutos corridos, entre otros para alimentar el algoritmo con mas variables.
+
+Para finalizar, segun los datos que teniamos en nuestro poder las predicciones que logro hacer el algoritmo me dejaron conformes si bien se cree que podria ser muchisimo mejor con mas cantidad de registros (incluso sin agregar los atributos antes mencionados) mejoraria facilmente.
 """
