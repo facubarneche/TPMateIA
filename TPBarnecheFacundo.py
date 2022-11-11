@@ -20,7 +20,7 @@ DataSet: Resultados de Selecciones de futbol
 Fecha de Entrega: 11/11/2022
 
 
-Hoy, sabado 5 de noviembre de 2022, estamos a nada mas y nada menos que a 15 dias para el comienzo de la copa del mundo en Qatar. En consecuencia al peso de este maravilloso evento, se pensó sobre la posibilidad de hacer predicciones de los partidos de la seleccion nacional en el mundial.
+Hoy, estamos a nada mas y nada menos que a https://www.fifa.com/fifaplus/es/tournaments/mens/worldcup/qatar2022/countdown-to-qatar-2022 (un pequeño scroll hacia abajo xD) para el comienzo de la copa del mundo en Qatar. En consecuencia al peso de este maravilloso evento, se pensó sobre la posibilidad de hacer predicciones de los partidos de la seleccion nacional en el mundial.
 
 Se cuenta con un dataSet de mas de 40000 registros, que contiene información sobre partidos entre selecciones de futbol desde 1872 hasta la actualidad. Se hizó un proceso de seleccion y limpieza para dejar un dataFrame unicamente de la seleccion Argentina y se le agrego posibles partidos de la seleccion argentina. La información incluye la fecha, el rival, los goles a favor y en contra, el torneo (amistoso, copa america, copa del mundo, etc), la cuidad y el respectivo pais en donde se disputo el partido, neutral (un valor booleano por si el partido entre las selecciones es en un pais neutral) y por otro lado se agrego con una formula en el csv una columna con el ganador del partido ya que al dataSet original se lo va a utilizar para hacer un proceso de limpieza en donde se va a precisar esa columna y asi crear un dataFrame mas efectivo para la informacion que se desea mostrar.
 
@@ -30,9 +30,6 @@ En base a lo anteriormente comentado es que se usará la regresion lineal multip
 
 Vale destacar que los datos fueron obtenidos de https://www.kaggle.com
 """
-
-
-
 
 #########################################################################################
 ################################       FUNCIONES       ##################################
@@ -107,13 +104,15 @@ newDF['Neutral'] = pd.concat([df_local['Neutral'], df_visita['Neutral']])
 newDF['Condicion'] = pd.concat([df_local['Condicion'], df_visita['Condicion']])
 newDF['Goles a Favor'] = pd.concat([df_local['Goles Local'], df_visita['Goles Visita']])
 newDF['Goles en Contra'] = pd.concat([df_local['Goles Visita'], df_visita['Goles Local']])
+#Creo una columna resultado para mejorar la interpretacion de los datos, si los goles a favor es mayor a goles en contra "GANO", siguiendo con la logica el empate y la derrota
+#Se podia directamente poner -1, 0, y 1 pero personalmente creo que se hace un poco mas entendible para una persona externa al programa
 newDF['Resultado'] = np.where(newDF['Goles a Favor'] > newDF['Goles en Contra'], "GANO", np.where(newDF['Goles a Favor'] < newDF['Goles en Contra'], "PERDIO", "EMPATO"))
 
 #Creo un diccionario para luego mapearle las variables numericas que yo quiero
 ganador = {'PERDIO':-1, 'EMPATO':0, 'GANO':1}
 newDF['Resultado'] = newDF['Resultado'].map(ganador)
 
-#Ordeno el dataFrame por index
+#Ordeno el dataFrame por index ya que al concatenar los rivales de argentina de dos df distintos quedaron desorneados los index
 newDF = newDF.sort_index()
 
 """
@@ -146,10 +145,10 @@ fig, ax = plt.subplots()
 width=0.25
 
 #Generamos las barras para el conjunto de promedios de goles a favor
-ax.bar(x - width/2, prom_gaf, width, label='Promedio de goles a favor',color='red')
+ax.bar(x - width/2, prom_gaf, width, label='Promedio de goles a favor',color='orange')
 
 #Generamos las barras para el conjunto de promedios de goles en contra
-ax.bar(x + width/2, prom_gec, width, label='Promedio de goles en contra',color='pink')
+ax.bar(x + width/2, prom_gec, width, label='Promedio de goles en contra',color='gray')
 
 #Agregamos las etiquetas de identificación de valores en el gráfico
 ax.set_ylabel('Goles')
@@ -196,11 +195,10 @@ y = dependentVar(newDF)
 #Pasamos todos los datos categoricos a numericos (la variable independiente no tiene datos categoricos)
 transform(x)
 
-#Utilizamos OneHotEncoder para codificar características categóricas como una matriz y make_column_transformer permite aplicar transformaciones de datos de forma selectiva a diferentes columnas del conjunto de datos. Es decir que calcula y sobreescribe.
-
-#CONSULTAR, ASI TENGO MENOS ERROR PERO NO ME PARECE CORRECTO (sacar standarscaler)
+#Se podria utilizar OneHotEncoder para codificar características categóricas como una matriz y make_column_transformer permite aplicar transformaciones de datos de forma selectiva a diferentes columnas del conjunto de datos. Es decir que calcula y sobreescribe.
 #onehotencoder = make_column_transformer((OneHotEncoder(), []), remainder = "passthrough")
 #x = onehotencoder.fit_transform(x)
+#De todos modos se inclino por no usar esta funcion ya que las columnas en las cuales serviria aplicar onehotencoder (por ej paises, o fechas) tienen un peso significativo que prefiero que sigan teniendo ya que no es lo mismo (en modo de ejemplo que el 76 es alemania a jugar contra el 15 que es islas fiji)
 
 """
 A entrenar se ha dicho!
@@ -216,37 +214,33 @@ Para lograr esta fase del proyecto es necesario dividir los datos en 4 partes:
 #Dividimos el dataSet en bloques, que usaremos para entrenamiento y validacion
 x_train, x_test, y_train, y_test = train_test_split(x, y, test_size=0.2, random_state=0, stratify=y)
 
+#Escalamos los datos para que ninguna columna tenga mas peso que otra en donde su rango sea muy distinto (por ej, las fechas con los goles a favor y encontra)
 sc_X = StandardScaler()
 x_train = sc_X.fit_transform(x_train)
 x_test = sc_X.transform(x_test)
 
-#Utilizamos la tecnica de los cuadrados minimos, basado en la experiencia de aprendizaje
+#Utilizamos la regresion linea conocida tambien como la tecnica de los cuadrados minimos, basado en la experiencia de aprendizaje
 regressor = LinearRegression() 
 regressor.fit(x_train, y_train) 
 
-
-#PREGUNTAR SI ESTA BIEN REDONDEAR LA PREDICCION Y CAMBIARLA 
 #Con los datos de test se predice el resultado
 y_pred = regressor.predict(x_test)
-y_pred = np.round(regressor.predict(x_test))
-#y_pred = y_pred.astype(int)
-#i = 0
-#for y in y_pred:
-#    if(y > 2):
-#        y_pred[int(i)] = 2
-#    if(y < 0):
-#        y_pred[int(i)] = 0
-#    i += 1
 
-#Con un dataFrame auxiliar se compara los valores actuales contra las predicciones
+#Estas lineas comentadas son para ver con mas precision por que resultado se inclina el algoritmo ya que si la prediccion es 0.87..... se entiende que la prediccion es "GANO" = 1
+#y_pred = np.round(regressor.predict(x_test))
+#y_pred = y_pred.astype(int)
+
+
+#Con un dataFrame auxiliar se compara los valores actuales contra las predicciones y se muestra por consola
 df_aux = pd.DataFrame({'Actual': y_test.flatten(), 'Predicción': y_pred.flatten()})
-#print(df_aux.head(25))
+print(df_aux.head(25))
 
 """
 En este grafico se puede ver los valores actuales (reales) contra las predicciones, se aprecia que si bien la gran mayoria se acercan al resultado real no son tan precisas respecto a sus decimales. 
 """
 
-df_aux.head(30).plot(kind='bar',figsize=(10,8))
+#Se muestra por consola las primeras 25 comparaciones
+df_aux.head(25).plot(kind='bar',figsize=(10,8))
 plt.grid(which='major', linestyle='-', linewidth='0.5', color='darkgreen')
 plt.grid(which='minor', linestyle=':', linewidth='0.5', color='black')
 plt.show()
@@ -258,12 +252,17 @@ print('Raíz del error cuadrático medio:', np.sqrt(metrics.mean_squared_error(y
 print('mean absolute percentage error:',metrics.mean_absolute_percentage_error(y_test, y_pred))
 
 """
-Para concluir se apreciar como el valor "Raiz del error cuadratico medio" es de 0.5358 lo cual es una pesima prediccion, aunque no fue muy preciso el algoritmo las predicciones son bastante acertadas ya que no es un factor importante el decimal ya que la idea principal era que el valor se acerque al 1 si gana, 0 si empata y -1 si pierde.
+Para concluir se aprecia como el valor "Raiz del error cuadratico medio" es de 0.5358 lo cual es una pesima prediccion, aunque no fue muy preciso el algoritmo las predicciones son bastante acertadas ya que no es un factor importante el decimal ya que la idea principal era que el valor se acerque al 1 si gana, 0 si empata y -1 si pierde.
 
 Hay muchos factores que pueden haber contribuido a esta inexactitud, por ejemplo:
 
 1. Cantidad de datos: La cantidad de registros de la seleccion Argentina no es una gran cantidad de datos para obtener la mejor predicción posible.
+
 2. Los Atributos: La cantidad de atributos distintos como los paises, fechas, etc puede ser que le jueguen una mala pasada al algoritmo de precision haciendo que este mal interprete los datos.
 
+3. No se puede descartar una mala decision con los datos, o quiza el algoritmo de regresion lineal no era el correcto para este modelo.
+
 Para finalizar, segun los datos que teniamos en nuestro poder las predicciones que logro hacer el algoritmo me dejaron conformes si bien no se pudo mejorar para que la raiz del error cuadratico medio sea aceptable.
+
+PD: Anulo todo tipo de mufa!!
 """

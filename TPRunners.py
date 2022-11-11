@@ -135,12 +135,6 @@ y = dependentVar(df)
 transform(x)
 
 
-#Utilizamos OneHotEncoder para codificar características categóricas como una matriz y make_column_transformer permite aplicar transformaciones de datos de forma selectiva a diferentes columnas del conjunto de datos. Es decir que calcula y sobreescribe.
-
-#CONSULTAR, ASI TENGO MENOS ERROR PERO NO ME PARECE CORRECTO (sacar standarscaler)
-#onehotencoder = make_column_transformer((OneHotEncoder(), []), remainder = "passthrough")
-#x = onehotencoder.fit_transform(x)
-
 """
 A entrenar se ha dicho!
 
