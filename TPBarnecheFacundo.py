@@ -37,7 +37,7 @@ Vale destacar que los datos fueron obtenidos de https://www.kaggle.com
 
 #Recibe un dataSet y si hay algun campo vacio, lo llena con el valor de la fila anterior
 def isNull(dataSet):
-    print(f'Puede haber minimas variaciones en el caso que haya valores vacios, estos seran reemplazados por el resultado anterior.\nEl DataSet tiene {df.isnull().sum().sum()} valores vacios\n')
+    print(f'Puede haber minimas variaciones en el caso que haya valores vacios, estos seran reemplazados por el resultado anterior.\nEl DataSet tiene {dataSet.isnull().sum().sum()} valores vacios\n')
     return dataSet.fillna(method='ffill')
 
 #Recibe un dataSet e imprime detalles estadisticos
@@ -263,6 +263,39 @@ Hay muchos factores que pueden haber contribuido a esta inexactitud, por ejemplo
 3. No se puede descartar una mala decision con los datos, o quiza el algoritmo de regresion lineal no era el correcto para este modelo.
 
 Para finalizar, segun los datos que teniamos en nuestro poder las predicciones que logro hacer el algoritmo me dejaron conformes si bien no se pudo mejorar para que la raiz del error cuadratico medio sea aceptable.
+"""
 
-PD: Anulo todo tipo de mufa!!
+#########################################################################################
+##############################     PREDICCION MUNDIAL     ###############################
+#########################################################################################
+
+
+#Importacion de datos
+df_mundial = pd.read_csv('fixtureMundial.csv', low_memory=False)
+print('Apartado de Prediccion partidos del mundial:\n')
+print(df_mundial.head(35))
+x_mundial = independentVar(df_mundial)
+y_mundial = dependentVar(df_mundial)
+
+transform(x_mundial)
+
+x_train_mundial, x_test_mundial, y_train_mundial, y_test_mundial = train_test_split(x_mundial, y_mundial, test_size=0.2)
+
+sc_X_mundial = StandardScaler()
+x_train_mundial = sc_X_mundial.fit_transform(x_train_mundial)
+x_test_mundial = sc_X.transform(x_test_mundial)
+
+#Utilizamos la regresion linea conocida tambien como la tecnica de los cuadrados minimos, basado en la experiencia de aprendizaje
+regressor = LinearRegression() 
+regressor.fit(x_train_mundial, y_train_mundial) 
+
+#Con los datos de test se predice el resultado
+y_pred_mundial = regressor.predict(x_test_mundial)
+
+df_aux_mundial = pd.DataFrame({'Actual': y_test_mundial.flatten(), 'Predicción': y_pred_mundial.flatten()})
+
+print(df_aux_mundial.head(35))
+
+"""
+La idea principal de este apartado es hacer las predicciones de los 7 (en el caso de ganar todos) partidos del mundial, lamentablemente no pude hacer que solo tome los ultimos 7 pero afortunadamente la prediccion dice que argentina gana todos los partidos
 """
